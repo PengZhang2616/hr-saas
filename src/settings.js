@@ -1,6 +1,6 @@
 module.exports = {
   // 网页标签栏的标题
-  title: 'Vue Admin Template',
+  title: 'hr-saas',
 
   /**
    * @type {boolean} true | false
@@ -15,4 +15,8 @@ module.exports = {
    */
   /* sidebar左边顶部logo */
   sidebarLogo: true
+
+  /* 为什么这个文件要使用module.export的comminjs语法
+    是因为他在vue.config.js中使用
+  */
 }

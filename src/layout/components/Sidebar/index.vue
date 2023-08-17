@@ -1,6 +1,8 @@
 <template>
   <div :class="{'has-logo':showLogo}">
+    <!-- logo区域 -->
     <logo v-if="showLogo" :collapse="isCollapse" />
+    <!-- 左侧侧边栏滚动区域 -->
     <el-scrollbar wrap-class="scrollbar-wrapper">
       <el-menu
         :default-active="activeMenu"

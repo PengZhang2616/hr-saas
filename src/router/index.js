@@ -43,6 +43,20 @@ export const constantRoutes = [
     hidden: true
   },
 
+  /* 当在locahost：3000后输入 /
+
+    1. 当用户访问应用程序的根路径 / 时，路由会匹配到根路径的配置。到Layout页面，整个页面显示Layout组件
+
+    2. Layout 组件将作为根路径的组件进行渲染。这里的 Layout 可能是你应用程序中定义的一个布局组件，它可能包含导航栏、侧边栏和其他共享组件。
+
+    3. 由于配置了重定向 (redirect) 属性，根路径会重定向到 /dashboard 路径。
+
+    4. Layout 组件中的 <router-view> 占位符会渲染匹配的子路由组件。
+
+    5. Dashboard 组件将作为子路由的组件进行渲染。这里使用动态导入 (import()) 来异步加载 @/views/dashboard/index 组件。
+
+    6. 可以根据需要在 meta 对象中定义一些元信息，例如标题和图标，用于在布局组件中显示。
+  */
   {
     path: '/',
     component: Layout,
@@ -50,6 +64,9 @@ export const constantRoutes = [
     children: [{
       path: 'dashboard',
       name: 'Dashboard',
+      /* component: () => import('@/views/dashboard/index')
+        这里使用到了路由懒加载，首次进入页面不会加载，提升首屏渲染性能
+      */
       component: () => import('@/views/dashboard/index'),
       meta: { title: 'Dashboard', icon: 'dashboard' }
     }]
@@ -80,6 +97,7 @@ export const constantRoutes = [
   {
     path: '/form',
     component: Layout,
+    redirect: '/form/index',
     children: [
       {
         path: 'index',
@@ -169,6 +187,8 @@ const createRouter = () => new Router({
   scrollBehavior: () => ({ y: 0 }),
   routes: constantRoutes
 })
+
+// 路由前置守卫写在这里其实也没什么问题，但是路由守卫很多也跟权限有关，所以我们放在permission文件中
 
 const router = createRouter()
 

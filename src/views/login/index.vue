@@ -3,18 +3,20 @@
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
 
       <div class="title-container">
-        <h3 class="title">Login Form</h3>
+        <h3 class="title">
+          <img src="src/assets/common/login-logo.png" alt="">
+        </h3>
       </div>
 
-      <el-form-item prop="username">
+      <el-form-item prop="mobile">
         <span class="svg-container">
           <svg-icon icon-class="user" />
         </span>
         <el-input
-          ref="username"
-          v-model="loginForm.username"
-          placeholder="Username"
-          name="username"
+          ref="mobile"
+          v-model="loginForm.mobile"
+          placeholder="请输入手机号"
+          name="mobile"
           type="text"
           tabindex="1"
           auto-complete="on"
@@ -30,7 +32,7 @@
           ref="password"
           v-model="loginForm.password"
           :type="passwordType"
-          placeholder="Password"
+          placeholder="请输入密码"
           name="password"
           tabindex="2"
           auto-complete="on"
@@ -41,11 +43,12 @@
         </span>
       </el-form-item>
 
-      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
+      <el-button :loading="loading" class="loginBtn" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>  <!-- 这里的native修饰符如果没有，也会触发，因为element ui底层对组件封装了，并派发了一个名字叫click的事件，实际上el-button是不能绑定click事件的，是没有效果的 -->
+      <el-button @click="$refs.loginForm.resetFields()">RESET</el-button>
 
       <div class="tips">
-        <span style="margin-right:20px;">username: admin</span>
-        <span> password: any</span>
+        <span style="margin-right:20px;">账号: 13800000002</span>
+        <span> 密码: 123456 {{ $store.getters.token }} </span>
       </div>
 
     </el-form>
@@ -53,33 +56,48 @@
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
+// import { reqLogin } from '../../api/user'
+// import http from '@/utils/request'
+// import { validUsername } from '@/utils/validate'
 
+import { mapActions } from 'vuex'
 export default {
   name: 'Login',
   data() {
-    const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
-      } else {
-        callback()
-      }
-    }
-    const validatePassword = (rule, value, callback) => {
-      if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
-      } else {
-        callback()
-      }
-    }
+    // const validateUsername = (rule, value, callback) => {
+    //   if (!validUsername(value)) {
+    //     callback(new Error('Please enter the correct user name'))
+    //   } else {
+    //     callback()
+    //   }
+    // }
+    // const validatePassword = (rule, value, callback) => {
+    //   if (value.length < 6) {
+    //     callback(new Error('The password can not be less than 6 digits'))
+    //   } else {
+    //     callback()
+    //   }
+    // }
     return {
       loginForm: {
-        username: 'admin',
-        password: '111111'
+        mobile: '13800000002',
+        password: '888itcast.CN764%...'
       },
       loginRules: {
-        username: [{ required: true, trigger: 'blur', validator: validateUsername }],
-        password: [{ required: true, trigger: 'blur', validator: validatePassword }]
+        /* 此处不使用自定义校验 */
+        // mobile: [{ required: true, trigger: ['blur', 'change'], validator: validateUsername }],
+        mobile: [
+          { required: true, trigger: ['blur', 'change'], message: '手机号不能为空' }, // 这里required表示是否为必须，后面的trigger和message表示，如果用户没输入（required为false时）的触发条件和提示信息
+          { pattern: /^[1][3,4,5,6.7,8,9][0-9]{9}$/, trigger: ['blur', 'change'], message: '请输入11位手机号' } // pattern表示正则校验
+          /* 除了required和pattern，还有min，max */
+        ],
+
+        /* 此处不使用自定义校验 */
+        // password: [{ required: true, trigger: ['blur', 'change'], validator: validatePassword }]
+        password: [
+          { required: true, trigger: ['blur', 'change'], message: '密码不能为空' }
+          // { min: 6, max: 6, trigger: ['blur', 'change'], message: '密码为6位数' }
+        ]
       },
       loading: false,
       passwordType: 'password',
@@ -95,6 +113,7 @@ export default {
     }
   },
   methods: {
+    ...mapActions('user', ['login']),
     showPwd() {
       if (this.passwordType === 'password') {
         this.passwordType = ''
@@ -106,19 +125,37 @@ export default {
       })
     },
     handleLogin() {
-      this.$refs.loginForm.validate(valid => {
-        if (valid) {
-          this.loading = true
-          this.$store.dispatch('user/login', this.loginForm).then(() => {
-            this.$router.push({ path: this.redirect || '/' })
-            this.loading = false
-          }).catch(() => {
-            this.loading = false
-          })
-        } else {
-          console.log('error submit!!')
-          return false
-        }
+      this.$refs.loginForm.validate(async boo => {
+        // 开启按钮loading效果
+        this.loading = true
+        if (!boo) return this.$message.warning('请输入合法数据')
+        /* 这里的reqLogin抽离封装是因为，在页面中只处理业务，接口统一扔到api文件中 */
+        // reqLogin(this.loginForm).then(({ data: res }) => {
+        //   // 这里存储token最好不要放在组件中，一律在仓库中操作
+        //   console.log(res)
+        // })
+        // await this.$store.dispatch('user/login', this.loginForm)
+        this.login(this.loginForm).then(() => {
+          /* 因为请求时异步，this.$router.push('/')也会执行，这里如果登录失败了也会跳转，所以要处理登录失败的结果 */
+          /* 因为你不知道什么时候登录成功，登录失败，所以dispatch不好用，直接使用mapActions，然后通过user的仓库中的action返回一个promise，在resolve结束后再执行业务，即跳转'/' */
+          // if (res.code === 10000) {
+          //   this.$message.success(res.message)
+          //   this.$router.push('/')
+          // } else {
+          //   this.$message.success(res.message)
+          // }
+          /* 以上代码我们不这么写，因为有很多请求，我们统一处理业务失败的逻辑，在拦截器中处理逻辑
+             响应成功密码错误失败不会走这个.then函数，因为在拦截器里已经被拦截了，返回了一个reject
+          */
+          this.$router.push('/')
+        }).catch(() => {
+          // 这里的catch代表着请求成功，业务失败（密码错误）的逻辑
+          // 此处.catch不用写$message是因为响应拦截器里面已经做了对业务失败的处理，如果写了会跳出两个message框
+          // this.$message.error(res)
+        }).finally(() => {
+          // 无论走.then还是.catch，都会执行finally的代码
+          this.loading = false
+        })
       })
     }
   }
@@ -130,7 +167,7 @@ export default {
 /* Detail see https://github.com/PanJiaChen/vue-element-admin/pull/927 */
 
 $bg:#283443;
-$light_gray:#fff;
+$light_gray: #407ffe; // 修改输入框字体颜色
 $cursor: #fff;
 
 @supports (-webkit-mask: none) and (not (cater-color: $cursor)) {
@@ -141,6 +178,9 @@ $cursor: #fff;
 
 /* reset element-ui css */
 .login-container {
+  /* @是src别名， 但是在css中要使用这个别名，需要在前面加上 ~ 找到别名对应的路径 */
+  background-image: url('~@/assets/common/login.jpg'); // 设置背景图片
+  background-position: center; // 将图片位置设置为充满整个屏幕
   .el-input {
     display: inline-block;
     height: 47px;
@@ -165,9 +205,21 @@ $cursor: #fff;
 
   .el-form-item {
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.9); // 输入登录表单的背景色
     border-radius: 5px;
     color: #454545;
+  }
+
+  .el-form-item__error {
+    color: #fff;
+    font-size: 14px;
+  }
+
+  .loginBtn {
+    background: #407ffe;
+    height: 64px;
+    line-height: 32px;
+    font-size: 24px;
   }
 }
 </style>
